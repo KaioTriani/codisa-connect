@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, Filter, ShoppingCart, X } from "lucide-react";
+import { Search, Filter, ShoppingCart, X, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
@@ -118,44 +118,67 @@ const Produtos = () => {
           <div className="flex-1">
             <p className="text-sm text-muted-foreground mb-4">{filtered.length} produto(s) encontrado(s)</p>
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filtered.map((product, i) => (
-                <motion.div
-                  key={product.id}
-                  custom={i % 12}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={fadeUp}
-                  className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group"
-                >
-                  <div className="relative aspect-square bg-muted overflow-hidden">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                    {product.promoPrice && (
-                      <span className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded">OFERTA</span>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="text-xs text-muted-foreground">{product.brand}</p>
-                    <h3 className="font-heading font-bold text-sm text-card-foreground line-clamp-2 mb-2 min-h-[2.5rem]">{product.name}</h3>
-                    <div className="flex items-baseline gap-2 mb-2">
-                      {product.promoPrice && (
-                        <span className="text-xs text-muted-foreground line-through">R$ {product.wholesalePrice.toFixed(2)}</span>
+              {filtered.map((product, i) => {
+                const unitPrice = product.promoPrice || product.wholesalePrice;
+                const boxTotal = unitPrice * product.unitsPerBox;
+                const esgotado = product.stock <= 0;
+
+                return (
+                  <motion.div
+                    key={product.id}
+                    custom={i % 12}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={fadeUp}
+                    className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow group"
+                  >
+                    <div className="relative aspect-square bg-muted overflow-hidden">
+                      <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                      {product.promoPrice && !esgotado && (
+                        <span className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded">OFERTA</span>
                       )}
-                      <span className="text-lg font-heading font-black text-secondary">
-                        R$ {(product.promoPrice || product.wholesalePrice).toFixed(2)}
-                      </span>
+                      {esgotado && (
+                        <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center">
+                          <span className="bg-foreground text-background text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">Esgotado</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3">{product.packaging} • Cx c/ {product.unitsPerBox}un</p>
-                    <Button
-                      size="sm"
-                      className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                      onClick={() => addItem(product)}
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-1" /> Adicionar
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
+                    <div className="p-3">
+                      <p className="text-xs text-muted-foreground">{product.brand} • <span className="font-mono">{product.code}</span></p>
+                      <h3 className="font-heading font-bold text-sm text-card-foreground line-clamp-2 mb-2 min-h-[2.5rem]">{product.name}</h3>
+
+                      {/* B2B Price Display */}
+                      <div className="mb-2 space-y-0.5">
+                        {product.promoPrice && (
+                          <p className="text-xs text-muted-foreground line-through">R$ {product.wholesalePrice.toFixed(2)} / un.</p>
+                        )}
+                        <p className="text-base font-heading font-black text-secondary">
+                          R$ {unitPrice.toFixed(2)} <span className="text-xs font-medium text-muted-foreground">/ un.</span>
+                        </p>
+                        <p className="text-xs font-semibold text-foreground bg-muted rounded px-2 py-0.5 inline-block">
+                          R$ {boxTotal.toFixed(2)} / caixa ({product.unitsPerBox}un)
+                        </p>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground mb-3">{product.packaging}</p>
+
+                      <Button
+                        size="sm"
+                        className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 disabled:opacity-50"
+                        onClick={() => !esgotado && addItem(product)}
+                        disabled={esgotado}
+                      >
+                        {esgotado ? (
+                          <><Package className="h-4 w-4 mr-1" /> Esgotado</>
+                        ) : (
+                          <><ShoppingCart className="h-4 w-4 mr-1" /> Adicionar caixa</>
+                        )}
+                      </Button>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
             {filtered.length === 0 && (
               <div className="text-center py-16">

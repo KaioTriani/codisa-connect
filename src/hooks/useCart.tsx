@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 
 export interface CartItem {
   product: Product;
-  quantity: number;
+  quantity: number; // quantity = número de CAIXAS
 }
 
 interface CartContextType {
@@ -14,7 +14,7 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   total: number;
-  itemCount: number;
+  itemCount: number; // número de caixas
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -30,7 +30,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
       return [...prev, { product, quantity: 1 }];
     });
-    toast({ title: "Adicionado!", description: `${product.name} foi adicionado ao carrinho.` });
+    toast({ title: "Adicionado!", description: `1 caixa de ${product.name} adicionada ao carrinho.` });
   };
 
   const removeItem = (productId: string) => {
@@ -47,7 +47,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = () => setItems([]);
 
-  const total = items.reduce((sum, i) => sum + (i.product.promoPrice || i.product.wholesalePrice) * i.quantity, 0);
+  // Total = caixas * (preço unitário * unidades por caixa)
+  const total = items.reduce((sum, i) => {
+    const unitPrice = i.product.promoPrice || i.product.wholesalePrice;
+    return sum + (unitPrice * i.product.unitsPerBox * i.quantity);
+  }, 0);
+
+  // itemCount = número de caixas no carrinho
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
